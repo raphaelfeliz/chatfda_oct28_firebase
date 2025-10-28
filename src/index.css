@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+/* === WIDGET POSITIONING AND STYLING === */
+
+.chat-launcher-button {
+  /* This remains fixed to the viewport */
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #14293D; /* Match header color */
+  border: none;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,.25);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483646; /* One less than host/window */
+  transition: transform 0.2s ease-out;
+  pointer-events: auto;
+}
+
+.chat-launcher-button:hover {
+    transform: scale(1.1);
+}
+
+.chat-window {
+  height: 100%; 
+  width: 100%; 
+  display: flex;
+  flex-direction: column;
+  background-color: #f0f2f5; /* Adjust background as needed */
+  box-shadow: -5px 0 25px rgba(0,0,0,.15); 
+  transform: translateX(100%); /* Start off-screen */
+  animation: slideIn 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  overflow: hidden; 
+  pointer-events: auto;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* === CUSTOM VERTICAL SCROLLBARS === */
+/* Keep these as they apply to elements *inside* your components */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e0; /* gray-400 */
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0; /* gray-500 */
+}
+
+/* === CUSTOM HORIZONTAL SCROLLBARS === */
+/* Keep these as well */
+.custom-scrollbar-horizontal::-webkit-scrollbar {
+  height: 6px;
+}
+.custom-scrollbar-horizontal::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar-horizontal::-webkit-scrollbar-thumb {
+  background: #4a5568; /* gray-600 */
+  border-radius: 3px;
+}
+.custom-scrollbar-horizontal::-webkit-scrollbar-thumb:hover {
+  background: #718096; /* gray-500 */
+}
