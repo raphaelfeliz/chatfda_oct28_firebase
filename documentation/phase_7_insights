@@ -1,0 +1,105 @@
+# PHASE 7: AI OBSERVABILITY & HARDENING
+
+> **Objective:** Ship low-risk improvements that increase reliability, debuggability, and correctness of the Gemini integration. None of these are blockers for production usage; they’re safety/quality upgrades. Prioritize in the order listed.
+
+## 7.1 GOAL: Environment Parity & Secrets Hygiene
+- **summary:** Ensure the backend reads the correct API key in all environments and prevent “works locally, fails in prod” incidents.
+
+### 7.1.1 STEP: Env var fallback (non-breaking)
+- **Step plan for approval:** Update functions code to read `process.env.GEMINI_API_KEY ?? process.env.API_KEY` and log which name was used when `DEBUG_AI_PROMPT==='true'` (name only, not value).
+- **Acceptance:** Cold start logs show the resolved key name; no auth errors on requests.
+
+### 7.1.2 STEP: Functions config check
+- **Step plan for approval:** Run `firebase functions:config:get` and Secret Manager check; document where the key is sourced (Functions config vs Secret Manager) in `documentation/project_specs.md`.
+- **Acceptance:** Specs updated; source of truth documented.
+
+---
+
+## 7.2 GOAL: SDK Compatibility Guard
+- **summary:** Make the call resilient to minor `@google/genai` changes.
+
+### 7.2.1 STEP: Safe retry on schema issues
+- **Step plan for approval:** Wrap `generateContent` in a `try/catch`; on validation error, retry **without** `safetySettings` (or move them under `generationConfig` if the installed version requires it). Log a one-line WARN when fallback path is used (only if `DEBUG_AI_PROMPT==='true'`).
+- **Acceptance:** Requests succeed both with and without safety settings; fallback WARN visible only in debug.
+
+---
+
+## 7.3 GOAL: Prompt Integrity & Size Controls
+- **summary:** Keep prompts within safe limits and reinforce the JSON-only contract.
+
+### 7.3.1 STEP: Conversation history (bounded)
+- **Step plan for approval:** Extend `buildPrompt(userInput, ..., conversation?)` to accept a compact history (last 3–4 turns) and include it in **CONTEXT** with a byte cap (e.g., ~3–5 KB). Off by default; expose a flag to enable later.
+- **Acceptance:** When flag on, logs show `conversation_bytes`; prompt size remains under guardrail.
+
+### 7.3.2 STEP: Dual size guards
+- **Step plan for approval:** Add byte-level caps for both **KB** (already 15k chars) and **filteredProductDetails** (e.g., 6–8 KB). Append `...[TRUNCATED]...` markers when applied and log `prompt_size_bytes`, `kb_size_chars`, `products_bytes` (debug-only).
+- **Acceptance:** Oversized inputs are gracefully truncated; no API size errors.
+
+### 7.3.3 STEP: Contract reinforcement
+- **Step plan for approval:** Update prompt instructions to: (a) forbid inventing facts outside KB, (b) require **pure JSON** output, (c) set `"knowledgeBaseAnswer": null` when KB lacks the answer.
+- **Acceptance:** Fewer non-JSON responses in testing; correct `null` behavior observed.
+
+---
+
+## 7.4 GOAL: Robust JSON Extraction
+- **summary:** Improve parsing reliability when the model emits extra prose or multiple code fences.
+
+### 7.4.1 STEP: Best-candidate JSON selection
+- **Step plan for approval:** Enhance parser to: (1) prefer the **last fenced `json` block**, else (2) the **largest valid JSON object** found; fallback to raw string parse. Optionally allow `JSON5` as a last resort (feature-flagged).
+- **Acceptance:** Known tricky responses parse cleanly in unit tests and live trials.
+
+### 7.4.2 STEP: Lightweight parser tests
+- **Step plan for approval:** Add unit tests for cases: fenced JSON, multiple fences, leading prose, malformed fence, raw JSON. Wire into `npm test --prefix functions`.
+- **Acceptance:** Tests pass locally and on CI (if configured).
+
+---
+
+## 7.5 GOAL: Observability Without Leaks
+- **summary:** Make debug logs maximally useful while avoiding content exfiltration.
+
+### 7.5.1 STEP: KB fingerprint (no content)
+- **Step plan for approval:** When `DEBUG_AI_PROMPT==='true'`, log `kb_hash` (SHA-256 first 8 chars), `kb_size_chars`, counts for products/facets, and `prompt_size_bytes`. Do **not** log API key or KB content in non-debug mode.
+- **Acceptance:** Logs show fingerprints/sizes only; content remains private unless explicitly enabled.
+
+### 7.5.2 STEP: Operational discipline
+- **Step plan for approval:** Add a Runbook note: enable `DEBUG_AI_PROMPT=true` only during troubleshooting; unset immediately after. Include exact CLI snippets in `documentation/runbooks/ai_debug.md`.
+- **Acceptance:** Runbook added; variable toggled off after validation.
+
+---
+
+## 7.6 GOAL: Type Safety & UX Consistency (Polish)
+- **summary:** Catch config drift at compile time; standardize user-facing language.
+
+### 7.6.1 STEP: Type the generation config
+- **Step plan for approval:** Replace `any` on `generationConfig` with a typed interface for `temperature`, `topK`, `topP`, `maxOutputTokens`.
+- **Acceptance:** Type errors surface if keys drift; build still passes.
+
+### 7.6.2 STEP: Response language normalization
+- **Step plan for approval:** Ensure all default messages are PT-BR (or EN) consistently; document chosen language in specs.
+- **Acceptance:** No mixed-language fallbacks in UI; specs updated.
+
+---
+
+## 7.7 DEPLOY & VERIFY
+- **summary:** Deploy safely and confirm improvements.
+
+### 7.7.1 STEP: Build & deploy functions
+- **Step plan for approval:** `npm run build --prefix functions && firebase deploy --only functions`.
+- **Acceptance:** Deployment completes without errors.
+
+### 7.7.2 STEP: Targeted KB QA
+- **Step plan for approval:** Temporarily set `DEBUG_AI_PROMPT=true`; ask 2–3 questions answerable **only** by KB. Verify logs show: `kb_hash`, `kb_size_chars`, `prompt_size_bytes`, and that answers reference KB facts; then **unset** debug.
+- **Acceptance:** KB is confirmed in prompt; answers are correct; debug disabled post-test.
+
+---
+
+## 7.8 DOCUMENTATION UPDATES
+- **summary:** Keep the project reproducible.
+
+### 7.8.1 STEP: Specs & runbook
+- **Step plan for approval:** Update `documentation/project_specs.md` (env var names, prompt caps, SDK fallback), add `documentation/runbooks/ai_debug.md` (how to toggle debug, where to find logs, safety notes).
+- **Acceptance:** Docs merged; reviewers can reproduce debugging steps.
+
+---
+**Status:** READY FOR EXECUTION
+**Notes:** Changes are backward compatible and low risk; they enhance reliability and diagnostics without altering existing external behavior.

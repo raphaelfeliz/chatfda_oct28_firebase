@@ -1,0 +1,90 @@
+# PHASE 6: AI QUALITY & PROMPT VERIFICATION
+
+## 6.1 GOAL: Verify Knowledge Base (KB) Injection via Backend Logging
+- **summary:** We will conclusively confirm that `functions/src/kb_data.ts` is embedded in the prompt sent to Gemini by logging the *exact request payload* (system instruction + KB + user/context) inside the Cloud Function, then validating it in Cloud Logs.
+
+### 6.1.1 STEP: Add Secure Payload Logging (Backend)
+- **Step plan for approval:** Edit `functions/src/geminiLogic.ts` inside `getAIResponseAndFacets(...)` and, **right before** the Gemini call, log the request object conditionally:
+  - Add env-gated logging to avoid leaking in production: `if (process.env.DEBUG_AI_PROMPT === 'true') console.log('🧠 Gemini Prompt Log:', JSON.stringify(request));`
+  - Ensure the log includes `systemInstruction` and `contents` so the embedded KB is visible in logs.
+
+### 6.1.2 STEP: Build Functions
+- **Step plan for approval:** Compile backend changes.
+  - Command: `npm run build --prefix functions`
+
+### 6.1.3 STEP: Deploy Functions
+- **Step plan for approval:** Deploy only Functions (no Hosting change).
+  - Command: `firebase deploy --only functions`
+
+### 6.1.4 STEP: Exercise Live Flow
+- **Step plan for approval:** Open the live widget (`embed_test.html` or external host) and send:
+  - A **KB-specific** question (one you know exists verbatim in `kb_data.ts`).
+  - A generic question (control).
+
+### 6.1.5 STEP: Inspect Logs (Source of Truth)
+- **Step plan for approval:** Verify the logged payload:
+  - CLI (quick): `firebase functions:log | grep "🧠 Gemini Prompt Log" -n | tail -1`
+  - Or Cloud Console: **Logs Explorer** → filter by text `"🧠 Gemini Prompt Log"`.
+  - **Success definition:** The log shows `systemInstruction` containing the full knowledge base text and the user/context sections as expected.
+
+---
+
+## 6.2 GOAL: Token/Size Safety & Prompt Hygiene
+- **summary:** Ensure the KB + instructions fit the model’s context window; add defensive truncation and formatting if needed so the KB is reliably included.
+
+### 6.2.1 STEP: Add Prompt Size Diagnostics
+- **Step plan for approval:** Log approximate sizes when `DEBUG_AI_PROMPT==='true'`:
+  - `console.log('Prompt bytes:', Buffer.byteLength(JSON.stringify(request)))`
+  - `console.log('KB chars:', knowledgeBase.length)`
+  - **Success definition:** Size logs present; no excessive payload causing truncation.
+
+### 6.2.2 STEP: Add Guards & Formatting
+- **Step plan for approval:** If size risk detected, implement:
+  - Config var `KB_MAX_CHARS` (default e.g. `60000`) and truncate `knowledgeBase.slice(0, KB_MAX_CHARS)` with a clear `"...[TRUNCATED]"` marker.
+  - Wrap KB in clear delimiters (`--- START KB ---` / `--- END KB ---`) to improve model grounding.
+  - **Success definition:** Prompt remains within safe size; KB always present (possibly truncated with marker).
+
+---
+
+## 6.3 GOAL: Safe Debug Mode Toggle
+- **summary:** Keep verbose logging strictly opt-in via environment variables so we can debug safely in production-like environments without exposing secrets to clients.
+
+### 6.3.1 STEP: Introduce `DEBUG_AI_PROMPT` Env Gate
+- **Step plan for approval:** In `functions/.env` (or runtime config), add `DEBUG_AI_PROMPT=true` for debugging; default to `false` in production. All new logs print **only** when `DEBUG_AI_PROMPT==='true'`.
+
+### 6.3.2 STEP: Redeploy with Toggle Off by Default
+- **Step plan for approval:** Set `DEBUG_AI_PROMPT=false` for regular operation and redeploy functions.
+  - Commands:
+    - `npm run build --prefix functions`
+    - `firebase deploy --only functions`
+  - **Success definition:** No prompt payload logs when toggle is off.
+
+---
+
+## 6.4 GOAL: Acceptance Criteria & Rollback
+- **summary:** Define when Phase 6 is complete and how to revert safely.
+
+### 6.4.1 STEP: Acceptance Checklist
+- **Step plan for approval:** Mark Phase 6 **DONE** when:
+  1. Logs show the **full** prompt with KB when `DEBUG_AI_PROMPT=true`.
+  2. KB-specific queries produce correct answers against live backend.
+  3. Prompt size diagnostics show safe margins (no truncation **unless** intentionally applied).
+  4. Debug logs are silent when `DEBUG_AI_PROMPT=false`.
+
+### 6.4.2 STEP: Rollback
+- **Step plan for approval:** If issues arise:
+  - Set `DEBUG_AI_PROMPT=false` and redeploy functions.
+  - If needed, revert `geminiLogic.ts` to previous commit and run `firebase deploy --only functions`.
+
+---
+
+## 6.5 (Optional) Quick Frontend Sanity Trace
+- **summary:** A short-term client-side `console.log(prompt)` can be added but is **not recommended** beyond local/dev because it exposes system prompt + KB to end users.
+- **Step plan for approval:** Use **only** in a local dev branch; remove before pushing to `main`.
+
+---
+**Commands Quick Reference**
+- Build Functions: `npm run build --prefix functions`
+- Deploy Functions: `firebase deploy --only functions`
+- Tail Logs (CLI): `firebase functions:log | grep "🧠 Gemini Prompt Log" -n | tail -1`
+- Toggle Debug (example): set `DEBUG_AI_PROMPT=true` in Functions env/config, redeploy.

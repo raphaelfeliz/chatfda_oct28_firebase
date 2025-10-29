@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     styleLink.rel = 'stylesheet';
     // --- !!! IMPORTANT: USE THE ABSOLUTE URL NOW !!! ---
     // This MUST be replaced with the CSS filename from the `dist/assets` folder after each build.
-    styleLink.href = 'https://gen-lang-client-0545699517.web.app/assets/index-DN-9DjmB.css'; // <-- UPDATED
+    styleLink.href = 'https://gen-lang-client-0545699517.web.app/assets/index-hpi1T96u.css';
     // --- DEBUG LOG & BUILD REMINDER ---
     console.warn(
       `[Widget] Loading CSS: ${styleLink.href}. ` +

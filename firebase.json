@@ -1,67 +1,38 @@
 {
-  "hosting": {
-    "public": "dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "headers": [
-      {
-        "source": "/assets/**",
-        "headers": [
-          {
-            "key": "Access-Control-Allow-Origin",
-            "value": "*"
-          },
-          {
-            "key": "Cache-Control",
-            "value": "public, max-age=31536000, immutable"
-          }
-        ]
-      },
-      {
-        "source": "/**/!(@(assets)/**)",
-        "headers": [
-          {
-            "key": "Access-Control-Allow-Origin",
-            "value": "*"
-          },
-          {
-            "key": "Cache-Control",
-            "value": "no-cache"
-          }
-        ]
-      }
-    ]
-  },
-  "functions": [
+  "hosting": [
     {
-      "source": "functions",
-      "codebase": "default",
+      "site": "gen-lang-client-0545699517",
+      "public": "dist",
       "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
       ],
-      "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run lint",
-        "npm --prefix \"$RESOURCE_DIR\" run build"
+      "headers": [
+        {
+          "source": "/_probe.txt",
+          "headers": [
+            { "key": "Access-Control-Allow-Origin", "value": "*" },
+            { "key": "Cache-Control", "value": "no-store" }
+          ]
+        },
+        {
+          "source": "/assets/**",
+          "headers": [
+            { "key": "Access-Control-Allow-Origin", "value": "*" },
+            { "key": "Cache-Control", "value": "public, max-age=3600" }
+          ]
+        },
+        {
+          "source": "**/*.@(js|css|map|svg)",
+          "headers": [
+            { "key": "Access-Control-Allow-Origin", "value": "*" }
+          ]
+        }
+      ],
+      "rewrites": [
+        { "source": "**", "destination": "/index.html" }
       ]
     }
-  ],
-  "emulators": {
-    "functions": {
-      "port": 5001
-    },
-    "hosting": {
-      "port": 5000
-    },
-    "ui": {
-      "enabled": true
-    },
-    "singleProjectMode": true
-  }
+  ]
 }
