@@ -11,8 +11,10 @@ This document serves as a quick reference for key project configurations and det
 
 ## Environment Details:
 - **Recommended Node.js Version for Development:** 20.19+ or 22.12+
+- **Current Node.js Version:** 22.12.0
 - **Vite Version:** 7.1.12
 - **Frontend Build Output Directory:** `dist`
+- **Node Version Manager:** `n` (installed)
 
 ## Firebase Setup
 - **Firebase Project ID:** `gen-lang-client-0545699517`
@@ -24,6 +26,10 @@ This document serves as a quick reference for key project configurations and det
 - **Functions Linter:** `ESLint`
 - **Emulators Configured:** `Functions` (Port: 5001), `Hosting` (Port: 5000), `Emulator UI`
 
+## GitHub Repository:
+- **Remote URL:** `https://github.com/raphaelfeliz/chatfda_oct28_firebase.git`
+- **Initial Commit Hash:** `76064a6`
+
 ## Latest Build Asset Paths (from user's local successful build):
 These paths are crucial for embedding the widget in `test.html`.
 
@@ -34,9 +40,17 @@ These paths are crucial for embedding the widget in `test.html`.
 - **Frontend Source:** `src/`
 - **Backend Cloud Function Source:** `functions/src/`
 - **Main Widget Entry Point (Client-side):** `src/main.tsx` (handles Shadow DOM setup)
-- **AI Logic (Backend):** `functions/src/geminiLogic.ts`
-- **Product Data:** `src/product_data.ts` (also used by functions/src/product_data.ts)
+- **AI Logic (Backend)::** `functions/src/geminiLogic.ts`
+- **Product Data:** `src/product_data.ts` (also used by `functions/src/product_data.ts`)
 - **Knowledge Base Data:** `functions/src/kb_data.ts`
-- **Firebase Configuration:** `firebase.json`
+- **Firebase Configuration:** `firebase.json` (headers for CORS + caching)
 - **Firebase Project Alias Config:** `.firebaserc`
-- **Local Widget Test Page:** `test.html` (requires updating with latest asset hashes after each build)
+- **Local Widget Test Page:** `test.html` / `embed_test.html` (update with latest asset hashes after each build)
+
+## Operational Notes
+- **Local Verify (Env):** `npx vite --mode production -- inspect-env | grep VITE_` should show both `VITE_API_URL` & `VITE_WIDGET_API_KEY`.
+- **Security:** `.env` is **git-ignored**; never commit secrets.
+- **Post-Deploy Checks:**
+  - Headers: `curl -I <asset>` → expect `200`, `Access-Control-Allow-Origin: *`, `Cache-Control: public, max-age=31536000, immutable`
+  - Live AI call (`embed_test.html`): DevTools Network → `200 OK` from `VITE_API_URL`, no console errors.
+- **Live Version Status:** **Phase5_Validated** (as of 2025-10-29T04:20:00Z)

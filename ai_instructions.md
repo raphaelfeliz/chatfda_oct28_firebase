@@ -63,3 +63,15 @@ The update was successful. No build errors were encountered.
 ## 3. Project Information
 
 Always refer to `documentation/project_specs.md` for key project configurations and details. This document contains information about core technologies, environment details, latest build asset paths, and important files/folders.
+
+## 4. Approval Steps
+
+Before proceeding with each step in a plan, I will request your approval using the following template:
+
+```
+# <PHASE_NUMBER> PHASE: <PHASE_NAME>
+## <GOAL_NUMBER> GOAL: <GOAL_NAME>
+### <STEP_NUMBER> STEP: <STEP_NAME>
+- Step plan for approval:
+Describe the specific action I will take in this step.
+```

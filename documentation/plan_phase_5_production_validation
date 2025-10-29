@@ -1,0 +1,80 @@
+# PHASE 5: PRODUCTION VALIDATION & LIVE WIDGET QA
+
+## 5.1 GOAL: Verify Live Cross-Origin Functionality
+- **summary:** Confirm the deployed widget works flawlessly when embedded on an external page (e.g., `embed_test.html`). We will validate CORS/cache headers, perform an end-to-end AI chat test, and ensure UX is clean (no console errors).
+
+### 5.1.1 STEP: Header & Hosting Sanity (CORS / Cache)
+- **Step plan for approval:** Use HTTP header inspection to ensure Firebase Hosting is serving the correct headers for embeddability and performance.
+
+#### 5.1.1.1 asset header check
+- `curl -I https://gen-lang-client-0545699517.web.app/assets/<HASH>.js`
+- Expect: `200 OK`, `Content-Type: application/javascript`, `Access-Control-Allow-Origin: *`, `Cache-Control: public, max-age=31536000, immutable`.
+
+#### 5.1.1.2 css header check (optional)
+- `curl -I https://gen-lang-client-0545699517.web.app/assets/<HASH>.css`
+- Expect same embeddability/perf headers as JS where applicable.
+
+#### 5.1.1.3 homepage reachability (optional)
+- `curl -I https://gen-lang-client-0545699517.web.app/`
+- Expect: `200 OK`, correct `content-type`, and no unexpected redirects.
+
+## 5.2 GOAL: End-to-End Live AI Validation
+- **summary:** Validate that the live bundle can call the AI backend with the baked-in envs and render responses correctly in a cross-origin embed.
+
+### 5.2.1 STEP: Embed & Interact
+- **Step plan for approval:** Open `embed_test.html` (or external host) and validate behavior.
+
+#### 5.2.1.1 load verification
+- Open the page; confirm the 💬 launcher renders with no console errors.
+
+#### 5.2.1.2 chat flow probe
+- Send a prompt; in DevTools → **Network**:
+  - Confirm request targets `VITE_API_URL`.
+  - Status **200 OK** with expected JSON payload.
+  - UI renders the AI response (no red errors in **Console**).
+
+#### 5.2.1.3 cache-bypass if stale
+- If you see an older bundle:
+  - Hard reload or open in **Incognito**.
+  - If still stale, append a querystring to your script URL (e.g., `?v=<timestamp>`).
+
+## 5.3 GOAL: Safety Nets & Quick Triage
+- **summary:** Preempt common production pitfalls and ensure quick rollback if needed.
+
+### 5.3.1 STEP: Post-build Secret Leak Scan
+- **Step plan for approval:** Ensure the key is not present in the bundle.
+- `grep -R "Ge41424344" dist/` — should return **no matches**.
+
+### 5.3.2 STEP: Minimal Error Triage
+- **Step plan for approval:** If requests fail, capture:
+  - Response status/body, CORS errors, or mixed-content warnings.
+  - Confirm `VITE_API_URL` protocol is `https://` and reachable from the client.
+  - Retry once after hard reload.
+
+### 5.3.3 STEP: Rollback Plan
+- **Step plan for approval:** Keep prior asset hashes noted. If a blocker appears:
+  - Revert to the last commit / redeploy prior `dist/`.
+  - Run: `firebase deploy --only hosting` to restore the known-good.
+
+## 5.4 GOAL: UX & Performance Spot-Check
+- **summary:** Light, high-impact checks to ensure a smooth user experience.
+
+### 5.4.1 STEP: Accessibility skim
+- **Step plan for approval:** Confirm focus order into the panel, ESC to close, and readable color contrast (spot check via browser DevTools).
+
+### 5.4.2 STEP: Performance skim
+- **Step plan for approval:** In DevTools **Network**, ensure the main JS is HTTP-cached (immutable) and first paint occurs promptly (<2s on a fast connection).
+
+## 5.5 GOAL: Documentation & Version Stamp
+- **summary:** Record what shipped so reproductions and rollbacks are trivial.
+
+### 5.5.1 STEP: Specs update
+- **Step plan for approval:** Update `documentation/project_specs.md` with:
+  - New asset hashes (CSS/JS), ISO timestamp, “Live Version” = **Phase5_Validated**.
+  - Note headers verified (`ACAO:*`, long-term `Cache-Control`).
+
+### 5.5.2 STEP: CHANGELOG entry
+- **Step plan for approval:** Add `## Phase 5 – Production Validation & Live QA` to `CHANGELOG.md` with:
+  - `feature:` cross-origin embed validated.
+  - `fixed:` env var integration in prod.
+  - `ops:` cache/headers verified; rollback plan documented.
